@@ -29,13 +29,12 @@ import javax.annotation.concurrent.GuardedBy
 import scala.collection.JavaConverters._
 import scala.collection.mutable.{ArrayBuffer, HashMap, Map}
 import scala.util.control.NonFatal
-
 import com.google.common.util.concurrent.ThreadFactoryBuilder
-
 import org.apache.spark._
 import org.apache.spark.deploy.SparkHadoopUtil
 import org.apache.spark.internal.Logging
 import org.apache.spark.memory.{SparkOutOfMemoryError, TaskMemoryManager}
+import org.apache.spark.play.{BriefReport, CustomEndpoint}
 import org.apache.spark.rpc.RpcTimeout
 import org.apache.spark.scheduler.{DirectTaskResult, IndirectTaskResult, Task, TaskDescription}
 import org.apache.spark.shuffle.FetchFailedException
@@ -814,6 +813,23 @@ private[spark] class Executor(
       override def run(): Unit = Utils.logUncaughtExceptions(reportHeartBeat())
     }
     heartbeater.scheduleAtFixedRate(heartbeatTask, initialDelay, intervalMs, TimeUnit.MILLISECONDS)
+  }
+  private val customRpcEndpointRef =
+    RpcUtils.makeDriverRef(CustomEndpoint.ENDPOINT_NAME, conf, env.rpcEnv)
+
+  val startTime = System.currentTimeMillis()
+  private def sendBriefReport(): Unit ={
+    val briefReport = BriefReport(executorId, executorHostname,)
+
+  }
+  private def startDriverCustomEndpoint(): Unit = {
+    val customTask = new Runnable() {
+      override def run(): Unit = {
+
+      }
+    }
+
+
   }
 }
 

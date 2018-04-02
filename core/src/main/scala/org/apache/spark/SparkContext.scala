@@ -28,9 +28,8 @@ import scala.collection.Map
 import scala.collection.generic.Growable
 import scala.collection.mutable.HashMap
 import scala.language.implicitConversions
-import scala.reflect.{classTag, ClassTag}
+import scala.reflect.{ClassTag, classTag}
 import scala.util.control.NonFatal
-
 import com.google.common.collect.MapMaker
 import org.apache.commons.lang3.SerializationUtils
 import org.apache.hadoop.conf.Configuration
@@ -39,7 +38,6 @@ import org.apache.hadoop.io.{ArrayWritable, BooleanWritable, BytesWritable, Doub
 import org.apache.hadoop.mapred.{FileInputFormat, InputFormat, JobConf, SequenceFileInputFormat, TextInputFormat}
 import org.apache.hadoop.mapreduce.{InputFormat => NewInputFormat, Job => NewHadoopJob}
 import org.apache.hadoop.mapreduce.lib.input.{FileInputFormat => NewFileInputFormat}
-
 import org.apache.spark.annotation.DeveloperApi
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.deploy.{LocalSparkCluster, SparkHadoopUtil}
@@ -48,6 +46,7 @@ import org.apache.spark.internal.Logging
 import org.apache.spark.internal.config._
 import org.apache.spark.io.CompressionCodec
 import org.apache.spark.partial.{ApproximateEvaluator, PartialResult}
+import org.apache.spark.play.CustomEndpoint
 import org.apache.spark.rdd._
 import org.apache.spark.rpc.RpcEndpointRef
 import org.apache.spark.scheduler._
@@ -212,7 +211,7 @@ class SparkContext(config: SparkConf) extends Logging {
   private var _files: Seq[String] = _
   private var _shutdownHookRef: AnyRef = _
   private var _statusStore: AppStatusStore = _
-
+  private var _customEndPointRef: RpcEndpointRef = _
   /* ------------------------------------------------------------------------------------- *
    | Accessors and public fields. These provide access to the internal state of the        |
    | context.                                                                              |
@@ -487,6 +486,14 @@ class SparkContext(config: SparkConf) extends Logging {
     // retrieve "HeartbeatReceiver" in the constructor. (SPARK-6640)
     _heartbeatReceiver = env.rpcEnv.setupEndpoint(
       HeartbeatReceiver.ENDPOINT_NAME, new HeartbeatReceiver(this))
+
+
+    // setup custom endpoint
+    if(_conf.getBoolean("spark.play.custep", false)) {
+       _customEndPointRef = env.rpcEnv.setupEndpoint(CustomEndpoint.ENDPOINT_NAME,
+         new CustomEndpoint(this.env))
+    }
+
 
     // Create and start the scheduler
     val (sched, ts) = SparkContext.createTaskScheduler(this, master, deployMode)
@@ -1930,6 +1937,13 @@ class SparkContext(config: SparkConf) extends Logging {
         env.rpcEnv.stop(_heartbeatReceiver)
       }
     }
+
+    if(env != null && _customEndPointRef != null ){
+      Utils.tryLogNonFatalError {
+        env.rpcEnv.stop(_customEndPointRef)
+      }
+    }
+
     Utils.tryLogNonFatalError {
       _progressBar.foreach(_.stop())
     }
