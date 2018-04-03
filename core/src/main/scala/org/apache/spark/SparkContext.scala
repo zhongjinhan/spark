@@ -489,7 +489,7 @@ class SparkContext(config: SparkConf) extends Logging {
 
 
     // setup custom endpoint
-    if(_conf.getBoolean("spark.play.custep", false)) {
+    if(_conf.getBoolean("spark.play.custep", true)) {
        _customEndPointRef = env.rpcEnv.setupEndpoint(CustomEndpoint.ENDPOINT_NAME,
          new CustomEndpoint(this.env))
     }

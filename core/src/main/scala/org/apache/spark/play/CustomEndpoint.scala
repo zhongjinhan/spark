@@ -6,7 +6,7 @@ import org.apache.spark.internal.Logging
 import org.apache.spark.rpc.{RpcCallContext, RpcEnv, ThreadSafeRpcEndpoint}
 
 
-case class BriefReport(executorId: Int, executorName: String, uptime: Long)
+case class BriefReport(executorId: String, executorName: String, uptime: Long)
 class CustomEndpoint(env: SparkEnv) extends ThreadSafeRpcEndpoint with Logging{
   override val rpcEnv: RpcEnv = env.rpcEnv
 

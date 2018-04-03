@@ -818,18 +818,25 @@ private[spark] class Executor(
     RpcUtils.makeDriverRef(CustomEndpoint.ENDPOINT_NAME, conf, env.rpcEnv)
 
   val startTime = System.currentTimeMillis()
-  private def sendBriefReport(): Unit ={
-    val briefReport = BriefReport(executorId, executorHostname,)
 
+  private def sendBriefReport(): Unit = {
+    logInfo("send briefReport to driver")
+    val endTime = System.currentTimeMillis()
+    val briefReport = BriefReport(executorId, executorHostname, endTime - startTime)
+    customRpcEndpointRef.send(briefReport)
   }
+  private val customEndpoint =
+    ThreadUtils.newDaemonSingleThreadScheduledExecutor("driver-customDataPoint")
+
+  startDriverCustomEndpoint()
+
   private def startDriverCustomEndpoint(): Unit = {
     val customTask = new Runnable() {
       override def run(): Unit = {
-
+        Utils.logUncaughtExceptions(sendBriefReport())
       }
     }
-
-
+    customEndpoint.scheduleAtFixedRate(customTask, 1000, 5000, TimeUnit.MILLISECONDS)
   }
 }
 
